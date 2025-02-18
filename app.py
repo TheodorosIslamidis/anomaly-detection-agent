@@ -16,10 +16,10 @@ label_encoders = joblib.load('label_encoders.joblib')
 
 client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
-def explain_anomaly(data):
+def explain_anomaly(data,is_anomaly):
     prompt = (
-        f"Explain why the following data center metric is anomalous:\n\n"
-        f"{data}\n\n"
+        f"Explain why the following data center metric is normal/anomalous:\n\n"
+        f"{data,is_anomaly}\n\n"
         "Provide a detailed explanation in a clear, bullet-point list for improved readability. Current date is February 2025"
     )
     completion = client.chat.completions.create(
@@ -60,7 +60,7 @@ def predict():
     prediction = model.predict(df[features])
     is_anomaly = prediction[0] == -1 
     
-    explanation = explain_anomaly(data)
+    explanation = explain_anomaly(data,bool(is_anomaly))
     
     return jsonify({
         'is_anomaly': bool(is_anomaly),

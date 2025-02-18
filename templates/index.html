@@ -5,27 +5,96 @@
   <title>Anomaly Detection AI Agent in Data Center</title>
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <style>
+    body {
+      background-color: #f4f4f9;
+    }
+    .container {
+      max-width: 900px;
+    }
+    h1, p {
+      text-align: center;
+    }
+    .card {
+      margin-top: 20px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .explanation-text {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      background-color: #f8f9fa;
+      border-left: 4px solid #007bff;
+      padding: 10px 15px;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      color: #333;
+      position: relative;
+    }
+    
+    .toggle-expansion {
+      font-weight: bold;
+      color: #007bff;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+  </style>
 </head>
 <body>
 <div class="container mt-5">
   <h1>Anomaly Detection AI Agent</h1>
-  <p>Automatic CSV loading file for anomaly detection.</p>
-  <div class="mt-4" id="csv-result">
-    <h3>Prediction Results</h3>
-    <table class="table table-bordered">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Anomaly Detected</th>
-          <th>Explanation</th>
-        </tr>
-      </thead>
-      <tbody id="resultsBody"></tbody>
-    </table>
+  
+  
+  <div class="card">
+    <div class="card-header bg-primary text-white">
+      <h3 class="card-title mb-0">Prediction Results</h3>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+          <thead class="thead-dark">
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Anomaly Detected</th>
+              <th scope="col">Explanation</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
+
+function formatExplanation(text) {
+  const maxLength = 200;
+  if (text.length > maxLength) {
+    const truncated = text.substring(0, maxLength) + '...';
+    return `<div class="explanation-text" data-fulltext="${encodeURIComponent(text)}" data-truncatedtext="${encodeURIComponent(truncated)}">
+              ${truncated} <span class="toggle-expansion">Show more</span>
+            </div>`;
+  } else {
+    return `<div class="explanation-text">${text}</div>`;
+  }
+}
+
+
+document.addEventListener('click', function(e) {
+  if (e.target && e.target.classList.contains('toggle-expansion')) {
+    e.preventDefault();
+    const container = e.target.closest('.explanation-text');
+    const fullText = decodeURIComponent(container.getAttribute('data-fulltext'));
+    const truncatedText = decodeURIComponent(container.getAttribute('data-truncatedtext'));
+    if (e.target.textContent.trim() === "Show more") {
+      container.innerHTML = fullText + ' <span class="toggle-expansion">Show less</span>';
+    } else {
+      container.innerHTML = truncatedText + ' <span class="toggle-expansion">Show more</span>';
+    }
+  }
+});
+
 window.addEventListener('DOMContentLoaded', function() {
   Papa.parse('/static/test_realistic_data_center_metrics.csv', {
     download: true, 
@@ -36,9 +105,9 @@ window.addEventListener('DOMContentLoaded', function() {
       const resultsBody = document.getElementById('resultsBody');
       let rowIndex = 0;
 
-      // Process each row and display predictions as soon as they are available
+      
       for (const row of rows) {
-        // Convert fields to numbers as needed
+        
         row.cpu_utilization  = parseFloat(row.cpu_utilization);
         row.memory_usage     = parseFloat(row.memory_usage);
         row.disk_io          = parseFloat(row.disk_io);
@@ -58,17 +127,22 @@ window.addEventListener('DOMContentLoaded', function() {
           
           rowIndex++;
           const anomaly = result.is_anomaly ? 'Yes' : 'No';
-          const explanation = result.explanation ? `<pre>${result.explanation}</pre>` : '';
-          
+          const explanation = result.explanation 
+            ? formatExplanation(result.explanation)
+            : '';
           
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${rowIndex}</td><td>${anomaly}</td><td>${explanation}</td>`;
+          tr.innerHTML = `<th scope="row">${rowIndex}</th>
+                          <td>${anomaly}</td>
+                          <td>${explanation}</td>`;
           resultsBody.appendChild(tr);
 
         } catch (err) {
           rowIndex++;
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${rowIndex}</td><td>Error</td><td>Request failed</td>`;
+          tr.innerHTML = `<th scope="row">${rowIndex}</th>
+                          <td>Error</td>
+                          <td>Request failed</td>`;
           resultsBody.appendChild(tr);
         }
       }
