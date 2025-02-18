@@ -17,15 +17,17 @@ label_encoders = joblib.load('label_encoders.joblib')
 client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 def explain_anomaly(data,is_anomaly):
+    status = "anomalous" if is_anomaly else "normal"
     prompt = (
-        f"Explain why the following data center metric is normal/anomalous:\n\n"
-        f"{data,is_anomaly}\n\n"
-        "Provide a detailed explanation in a clear, bullet-point list for improved readability. Current date is February 2025"
+        f"Explain why the following data center metric is {status}:\n\n"
+        f"{data}\n\n"
+        "Provide a detailed explanation in a clear, bullet-point list for improved readability. "
+        "Current date is February 2025."
     )
     completion = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": "You are a helpful assistant that explains why data center metrics are anomalous."},
+            {"role": "system", "content": "You are a helpful assistant that explains why data center metrics are {status}."},
             {"role": "user", "content": prompt}
         ]
     )
