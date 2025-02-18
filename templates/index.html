@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Anomaly Detection AI Agent in Data Center</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+</head>
+<body>
+<div class="container mt-5">
+  <h1>Anomaly Detection AI Agent</h1>
+  <p>Automatic CSV loading file for anomaly detection.</p>
+  <div class="mt-4" id="csv-result">
+    <h3>Prediction Results</h3>
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Anomaly Detected</th>
+          <th>Explanation</th>
+        </tr>
+      </thead>
+      <tbody id="resultsBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+  Papa.parse('/static/test_realistic_data_center_metrics.csv', {
+    download: true, 
+    header: true,
+    skipEmptyLines: true,
+    complete: async function(results) {
+      const rows = results.data;
+      const resultsBody = document.getElementById('resultsBody');
+      let rowIndex = 0;
+
+      // Process each row and display predictions as soon as they are available
+      for (const row of rows) {
+        // Convert fields to numbers as needed
+        row.cpu_utilization  = parseFloat(row.cpu_utilization);
+        row.memory_usage     = parseFloat(row.memory_usage);
+        row.disk_io          = parseFloat(row.disk_io);
+        row.temperature      = parseFloat(row.temperature);
+        row.network_traffic  = parseFloat(row.network_traffic);
+        row.power_usage      = parseFloat(row.power_usage);
+
+        try {
+          const response = await fetch('/predict', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(row)
+          });
+          const result = await response.json();
+          
+          rowIndex++;
+          const anomaly = result.is_anomaly ? 'Yes' : 'No';
+          const explanation = result.explanation ? `<pre>${result.explanation}</pre>` : '';
+          
+          
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${rowIndex}</td><td>${anomaly}</td><td>${explanation}</td>`;
+          resultsBody.appendChild(tr);
+
+        } catch (err) {
+          rowIndex++;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${rowIndex}</td><td>Error</td><td>Request failed</td>`;
+          resultsBody.appendChild(tr);
+        }
+      }
+    }
+  });
+});
+</script>
+</body>
+</html>
